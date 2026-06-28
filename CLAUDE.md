@@ -54,6 +54,7 @@ Planner ──→ UIDesigner ──→ Generator ──→ Evaluator
 | `docs/release/submit/asc-iap-{product_id}.txt` | ASC IAP 商品ごとの申請パラメータ | AppStoreValidator のみ |
 | `docs/release/submit/revenuecat-setup.txt` | RevenueCat 設定パラメータ | AppStoreValidator のみ |
 | `docs/release/review-checklist.md` | Apple Review 提出前チェックリスト | AppStoreValidator のみ |
+| `log/` | 全エージェントの指示・実行ログ | 全エージェント（追記のみ） |
 
 - **仕様書は Planner だけが書く。** UIDesigner・Generator・Evaluator・Releaser・AppStoreValidator は読み取り専用。
 - **デザイン仕様書は UIDesigner だけが書く。** Generator・Evaluator・Releaser・AppStoreValidator は読み取り専用。
@@ -249,6 +250,61 @@ Planner ──→ UIDesigner ──→ Generator ──→ Evaluator
 9. **IAP を含むアプリは Step 3.5 を必ず通過してから AppStoreValidator を呼び出す** — 有料アプリ契約や RevenueCat 未設定のままビルドしても審査でリジェクトされる。
 10. **利用規約は必ず公開 URL で提供する** — 説明文内にインラインで書くのではなく、GitHub Pages 等でホストした URL を ASC の「EULA」欄と説明文末尾の両方に記載する（Guideline 3.1.2(c)）。
 11. **EAS 無料プランのビルド上限に注意する** — 無料プランは月ごとにリセット。Releaser は本番ビルド前に `eas build:list` で残り枠を確認し、上限到達時はローカル Xcode ビルドをユーザーに案内する。
+12. **全ての指示と実行内容を `log/` に記録する（絶対条件）** — 各エージェントは起動時・完了時にログファイルへ記録しなければならない。ログなしの作業は完了とみなさない。詳細は「ログ記録ルール」セクションを参照。
+
+## ログ記録ルール
+
+**全エージェント・オーケストレーターは、受け取った指示と実行したアクションを必ず `log/` ディレクトリに記録すること。これはワークフローの絶対条件である。**
+
+### ファイル命名規則
+
+```
+log/YYYY-MM-DD_HH-MM-SS_{agent}.md
+```
+
+例: `log/2026-06-27_14-30-00_generator.md`
+
+エージェント名は以下の値を使う: `orchestrator` / `planner` / `ui-designer` / `generator` / `evaluator` / `app-store-validator` / `releaser`
+
+### ログファイルの形式
+
+```markdown
+# {エージェント名} ログ
+
+- 日時: YYYY-MM-DD HH:MM:SS
+- ステップ: Step N（例: Step 2 Sprint 1）
+
+## 受け取った指示
+
+（オーケストレーターまたは前エージェントから渡された指示内容をそのまま記載）
+
+## 実行したアクション
+
+1. {実行内容}（例: `/docs/spec.md` を読み込んだ）
+2. {実行内容}（例: Sprint 1 のコンポーネント実装を行った）
+3. ...
+
+## 結果・引き渡し事項
+
+- 成否: 成功 / 失敗 / 差し戻し
+- 出力ファイル: （生成・更新したファイルのパス一覧）
+- 次エージェントへの引き渡し事項: （次のエージェントが知るべき情報）
+- 備考: （問題・懸念事項があれば記載）
+```
+
+### 記録タイミング
+
+| タイミング | 記録内容 |
+|-----------|---------|
+| エージェント起動時 | 受け取った指示・担当ステップ |
+| 作業完了時 | 実行したアクション一覧・結果・引き渡し事項 |
+| 差し戻し発生時 | 差し戻し理由・未達成の受け入れ基準 |
+
+### 補足
+
+- ログは**追記専用**。既存ログファイルは編集・削除禁止。
+- `log/` ディレクトリが存在しない場合は作成してから書き込む。
+- オーケストレーターも各 Step の判断・ユーザーへの確認内容をログに残す。
 
 ## 知見ナレッジベース
 
